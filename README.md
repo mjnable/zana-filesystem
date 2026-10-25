@@ -35,7 +35,9 @@ $path = $this->uploads->store($request->getUploadedFiles()['scan'], $this->disk,
   pointing outside it.
 - **Writes** create parent directories and are atomic on local disks.
 - **Uploads** are stored under random names. Only a safe, lower-cased extension
-  is kept from the client's file name.
+  is kept from the client's file name; extensions a web server could execute
+  (`php`, `phar`, `cgi`, …) are dropped. The size limit is checked against the
+  bytes received.
 - **Disks:** `local` (a directory) and `memory`, which is the default without
   configuration and suits tests.
 
