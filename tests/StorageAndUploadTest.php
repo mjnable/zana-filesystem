@@ -88,6 +88,30 @@ final class StorageAndUploadTest extends TestCase
         $this->assertMatchesRegularExpression('#^uploads/[0-9a-f]{32}$#', $path);
     }
 
+    public function testExecutableExtensionsAreDropped(): void
+    {
+        $store = new UploadedFileStore();
+        $disk = new InMemoryFilesystem();
+
+        foreach (['shell.php', 'SHELL.PHTML', 'x.phar', '.htaccess', 'run.cgi', 'photo.jpg.php5'] as $name) {
+            $this->assertMatchesRegularExpression('#^u/[0-9a-f]{32}$#', $store->store($this->upload($name, 'x'), $disk, 'u'), $name);
+        }
+        $this->assertMatchesRegularExpression('#^u/[0-9a-f]{32}\.jpg$#', $store->store($this->upload('shell.php.jpg', 'x'), $disk, 'u'));
+    }
+
+    public function testTheReceivedSizeIsChecked(): void
+    {
+        $disk = new InMemoryFilesystem();
+        $understated = new UploadedFile(Stream::create('12345'), 1, UPLOAD_ERR_OK, 'a.txt');
+
+        $this->expectExceptionMessage('is 5 bytes; the maximum is 4');
+        try {
+            (new UploadedFileStore())->store($understated, $disk, 'u', maxBytes: 4);
+        } finally {
+            $this->assertSame([], $disk->listContents('u'));
+        }
+    }
+
     public function testUploadErrorsSizeAndTypeAreChecked(): void
     {
         $store = new UploadedFileStore();
