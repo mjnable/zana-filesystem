@@ -21,8 +21,8 @@ final class FilesystemServiceProvider extends ServiceProvider
             ->singleton(StorageManager::class, static fn (ServiceResolverInterface $r): StorageManager => new StorageManager(
                 $r->get(ConfigurationInterface::class),
                 $r->get(ApplicationInterface::class)->basePath(),
-            ))
-            ->singleton(FilesystemInterface::class, static fn (ServiceResolverInterface $r): FilesystemInterface => $r->get(StorageManager::class)->disk())
+            ))->uses(ConfigurationInterface::class, ApplicationInterface::class)
+            ->singleton(FilesystemInterface::class, static fn (ServiceResolverInterface $r): FilesystemInterface => $r->get(StorageManager::class)->disk())->uses(StorageManager::class)
             ->singleton(UploadedFileStore::class);
     }
 
