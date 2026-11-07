@@ -3,6 +3,13 @@
 All Zana packages share one version number and are released together. A release that did
 not change this package is not listed.
 
+## 2.19.2 — Unreleased
+
+### Security
+
+- `UploadedFileStore` drops extensions a browser runs (`html`, `svg`, `js`, `xml`, …) as well as executable ones,
+  and gives a dangerous extension way to the detected type's. `trustedExtensions` keeps some anyway.
+
 ## 2.4.0 — 2026-10-26
 
 ### Changed

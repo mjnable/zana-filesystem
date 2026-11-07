@@ -99,6 +99,27 @@ final class StorageAndUploadTest extends TestCase
         $this->assertMatchesRegularExpression('#^u/[0-9a-f]{32}\.jpg$#', $store->store($this->upload('shell.php.jpg', 'x'), $disk, 'u'));
     }
 
+    public function testExtensionsABrowserRunsAreDroppedUnlessTrusted(): void
+    {
+        $store = new UploadedFileStore();
+        $disk = new InMemoryFilesystem();
+
+        foreach (['logo.svg' => '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>', 'page.html' => '<html><script>alert(1)</script>', 'PAGE.HTM' => '<p>x</p>', 'app.js' => 'alert(1)', 'feed.xml' => '<x/>'] as $name => $contents) {
+            $this->assertDoesNotMatchRegularExpression('#\.(svg|html?|js|xml)$#i', $store->store($this->upload($name, $contents), $disk, 'u'), $name);
+        }
+        $this->assertMatchesRegularExpression('#^u/[0-9a-f]{32}\.svg$#', $store->store($this->upload('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>'), $disk, 'u', trustedExtensions: ['svg']), 'opted in, for a disk served from another origin');
+        $this->assertMatchesRegularExpression('#^u/[0-9a-f]{32}\.docx$#', $store->store($this->upload('report.docx', 'PK'), $disk, 'u'), 'other extensions are kept as before');
+    }
+
+    public function testAnImageNamedLikeAPageIsStoredAsAnImage(): void
+    {
+        $polyglot = (base64_decode(self::PNG, true) ?: '') . '<script>alert(document.cookie)</script>';
+
+        $path = (new UploadedFileStore())->store($this->upload('portrait.html', $polyglot), new InMemoryFilesystem(), 'photos', allowedMimeTypes: ['image/png']);
+
+        $this->assertMatchesRegularExpression('#^photos/[0-9a-f]{32}\.png$#', $path, 'the detected type, not the page extension');
+    }
+
     public function testTheReceivedSizeIsChecked(): void
     {
         $disk = new InMemoryFilesystem();
