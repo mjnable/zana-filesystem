@@ -3,6 +3,15 @@
 All Zana packages share one version number and are released together. A release that did
 not change this package is not listed.
 
+## 2.21.0 — Unreleased
+
+### Security
+
+- `check` warns (`security.public_disk`) about a local disk inside the web root, `public/`, which the web server serves
+  file by file, uploads included (FE-68, ADR-033). A disk with a `url` is served on purpose and is not reported. Always
+  a warning, also with `security.strict`, since public images are a reason to do it.
+- Requires mj-zana/core 2.21.
+
 ## 2.19.2 — 2026-11-07
 
 ### Security
