@@ -53,7 +53,7 @@ final class StorageManager
         $url = isset($settings['url']) ? (string) $settings['url'] : null;
 
         return match ($settings['driver'] ?? null) {
-            'local' => new LocalFilesystem($this->path((string) ($settings['root'] ?? 'var/storage')), $url),
+            'local' => new LocalFilesystem($this->path((string) ($settings['root'] ?? 'var/storage')), $url, ($settings['follow_links'] ?? true) !== false),
             'memory' => new InMemoryFilesystem($url),
             default => throw new \InvalidArgumentException(sprintf('Disk "%s" has an unknown driver: %s.', $name, var_export($settings['driver'] ?? null, true))),
         };

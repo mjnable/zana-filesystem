@@ -3,6 +3,17 @@
 All Zana packages share one version number and are released together. A release that did
 not change this package is not listed.
 
+## 2.33.0 — Unreleased
+
+### Security
+
+- `LocalFilesystem` takes `followLinks` (`filesystem.disks.<name>.follow_links`). With `false`, a path that goes
+  through a link, or is one, a link to nothing included, is refused (`PathTraversalException::link()`), and listings
+  leave out what is reached through a link. The check compares the resolved path with the one written, so a Windows
+  junction, which PHP does not report as a link, is refused too; on Windows, another letter case is the same place,
+  not a link. The default, `true`, keeps 2.x's behaviour: links inside the root are followed, never out of it.
+- The test of a link out of the root now runs on Windows too, through a junction.
+
 ## 2.21.0 — 2026-11-14
 
 ### Security

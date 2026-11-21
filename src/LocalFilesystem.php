@@ -10,12 +10,18 @@ use Zana\Filesystem\Internal\Path;
 /**
  * A disk backed by a local directory. Writes are atomic, and no path may
  * leave the root, including through symbolic links.
+ *
+ * Links inside the root are followed by default, as before. With
+ * $followLinks false (filesystem.disks.<name>.follow_links, 2.33), a path
+ * that goes through a link, or is one, is refused, and listings leave links
+ * out: on a disk where users' uploads land, a link someone managed to create
+ * then points nowhere the application reads or writes.
  */
 final class LocalFilesystem implements FilesystemInterface
 {
     private readonly string $root;
 
-    public function __construct(string $root, private readonly ?string $url = null)
+    public function __construct(string $root, private readonly ?string $url = null, private readonly bool $followLinks = true)
     {
         $root = rtrim(str_replace('\\', '/', $root), '/');
         if (!is_dir($root) && !@mkdir($root, 0775, true) && !is_dir($root)) {
@@ -130,7 +136,8 @@ final class LocalFilesystem implements FilesystemInterface
 
         $files = [];
         foreach ($iterator as $file) {
-            if ($file instanceof \SplFileInfo && $file->isFile() && !str_ends_with($file->getFilename(), '.tmp')) {
+            if ($file instanceof \SplFileInfo && $file->isFile() && !str_ends_with($file->getFilename(), '.tmp') && ($this->followLinks || self::same(str_replace('\\', '/', (string) realpath($file->getPathname())), $file->getPathname()))) {
+                // Not following links (2.33): a file reached through one, a Windows junction included, is left out.
                 $relative = substr(str_replace('\\', '/', $file->getPathname()), strlen($this->root) + 1);
                 $files[] = $relative;
             }
@@ -201,8 +208,24 @@ final class LocalFilesystem implements FilesystemInterface
         if ($resolved !== $this->root && !str_starts_with($resolved . '/', $this->root . '/')) {
             throw PathTraversalException::for($path);
         }
+        // 2.33: not following links, the existing part must resolve to itself, so no part of it is a link;
+        // and the path itself must not be a link to nothing, which realpath() cannot read.
+        if (!$this->followLinks && (!self::same($resolved, $existing) || is_link($location))) {
+            throw PathTraversalException::link($path);
+        }
 
         return $location;
+    }
+
+    /**
+     * Whether a resolved path is the one written: Windows compares names without case, and its realpath() may change
+     * their case.
+     */
+    private static function same(string $resolved, string $written): bool
+    {
+        $written = rtrim(str_replace('\\', '/', $written), '/');
+
+        return DIRECTORY_SEPARATOR === '\\' ? strcasecmp($resolved, $written) === 0 : $resolved === $written;
     }
 
     private function existingFile(string $path): string
